@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Reports - Smart Payment Tracker</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📊 Reports</h2>
+    <div class="d-flex gap-2">
+      <a th:href="@{/home}" class="btn btn-outline-primary">🏠 Home</a>
+      <a th:href="@{/web/transactions}" class="btn btn-outline-success">💰 Transactions</a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" th:action="@{/reports}" class="row g-3 mb-4">
+    <div class="col-md-3">
+      <label class="form-label">Start Date</label>
+      <input type="date" name="startDate" class="form-control"/>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">End Date</label>
+      <input type="date" name="endDate" class="form-control"/>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Category</label>
+      <select name="category" class="form-select">
+        <option value="">All Categories</option>
+        <option th:each="cat : ${expenseByCategory.keySet()}"
+                th:value="${cat}"
+                th:text="${cat}">
+        </option>
+      </select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end gap-2">
+      <button type="submit" class="btn btn-primary w-50">Filter</button>
+      <a th:href="@{/reports}" class="btn btn-outline-secondary w-50">Reset</a>
+    </div>
+  </form>
+
+  <a th:href="@{/reports/download}"
+     class="btn btn-danger mb-3">
+    📄 Download REPORTS
+  </a>
+
+  <a href="/reports/email" class="btn btn-outline-success">
+    📧 Email PDF
+  </a>
+
+  <span th:if="${param.emailSuccess}" class="text-success ms-3">
+    ✅ Email sent successfully!
+</span>
+
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card text-bg-success shadow-sm p-3">
+        <h6>Total Income</h6>
+        <h3 th:text="${totalIncome}">0</h3>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm p-3"
+           th:classappend="${totalExpense > totalIncome} ? ' text-bg-danger' : ' text-bg-primary'">
+        <h6>Total Expense</h6>
+        <h3 th:text="${totalExpense}">0</h3>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-bg-primary shadow-sm p-3">
+        <h6>Balance</h6>
+        <h3 th:text="${balance}">0</h3>
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <!-- Smart Insights -->
+  <div class="card p-4 mb-4 shadow-sm">
+    <h5>📌 Smart Insights</h5>
+    <ul>
+      <li>
+        Highest spending category:
+        <b th:text="${insights.topCategory}">N/A</b>
+        (₹<span th:text="${insights.topCategoryAmount}">0</span>)
+      </li>
+      <li>
+        This category accounts for
+        <b th:text="${insights.topCategoryPercentage}">0</b>%
+        of your expenses
+      </li>
+    </ul>
+  </div>
+
+  <!-- Spending Alerts -->
+  <div class="card p-4 mb-4 shadow-sm">
+    <h5>🔔 Spending Alerts</h5>
+
+    <div th:if="${alerts.isEmpty()}">
+      <p class="text-success">✅ No overspending detected</p>
+    </div>
+
+    <div th:each="alert : ${alerts}"
+         class="alert alert-danger d-flex align-items-center">
+      <span class="me-2">⚠️</span>
+      <span th:text="${alert}"></span>
+    </div>
+  </div>
+
+  <!-- Monthly Comparison -->
+  <div class="card p-4 mb-4 shadow-sm">
+    <h5>📉 Monthly Expense Comparison</h5>
+    <p th:text="${monthlyComparison}" class="fw-bold"></p>
+  </div>
+
+  <!-- Charts -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <h6>Expenses by Category</h6>
+      <canvas id="categoryChart"></canvas>
+    </div>
+    <div class="col-md-6">
+      <h6>Monthly Spending Trend</h6>
+      <canvas id="monthlyChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Transactions Table -->
+  <div class="card shadow-sm p-3 mb-4">
+    <h5>🧾 Transactions</h5>
+    <div class="table-responsive">
+      <table class="table table-striped table-hover mt-3">
+        <thead class="table-primary">
+        <tr>
+          <th>ID</th>
+          <th>Description</th>
+          <th>Amount</th>
+          <th>Type</th>
+          <th>Category</th>
+          <th>Date</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="txn : ${transactions}">
+          <td th:text="${txn.id}"></td>
+          <td th:text="${txn.description}"></td>
+          <td th:text="${txn.amount}"></td>
+          <td th:text="${txn.type}"></td>
+          <td th:text="${txn.category}"></td>
+          <td th:text="${txn.date}"></td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Charts Script -->
+<script th:inline="javascript">
+  /* Category Pie Chart */
+  new Chart(document.getElementById('categoryChart'), {
+      type: 'pie',
+      data: {
+          labels: /*[[${expenseByCategory.keySet()}]]*/ [],
+          datasets: [{
+              data: /*[[${expenseByCategory.values()}]]*/ [],
+              backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40']
+          }]
+      }
+  });
+
+  /* Monthly Bar Chart */
+  new Chart(document.getElementById('monthlyChart'), {
+      type: 'bar',
+      data: {
+          labels: /*[[${monthlyExpense.keySet()}]]*/ [],
+          datasets: [{
+              label: 'Monthly Expenses',
+              data: /*[[${monthlyExpense.values()}]]*/ [],
+              backgroundColor: '#36A2EB'
+          }]
+      },
+      options: {
+          scales: {
+              y: { beginAtZero: true }
+          }
+      }
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

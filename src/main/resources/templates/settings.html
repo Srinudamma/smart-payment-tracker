@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>Budget Settings</title>
+</head>
+<body>
+
+<h2>💸 Monthly Budget</h2>
+
+<form th:action="@{/settings/budget}" method="post" th:object="${budget}">
+  <label>Category</label>
+  <input type="text" th:field="*{category}" required />
+
+  <label>Monthly Limit</label>
+  <input type="number" th:field="*{monthlyLimit}" required />
+
+  <button type="submit">Save</button>
+</form>
+
+<hr>
+
+<h3>Saved Budgets</h3>
+<table>
+  <tr>
+    <th>Category</th>
+    <th>Limit</th>
+  </tr>
+  <tr th:each="b : ${budgets}">
+    <td th:text="${b.category}"></td>
+    <td th:text="${b.monthlyLimit}"></td>
+  </tr>
+</table>
+
+<br>
+<a th:href="@{/home}">⬅ Back to Home</a>
+
+
+</body>
+</html>
