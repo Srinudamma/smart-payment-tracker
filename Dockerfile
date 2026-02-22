@@ -7,5 +7,5 @@ RUN mvn clean package -DskipTests=true -Dmaven.test.skip=true
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /app/target/smart-payment-tracker-*.jar app.jar
-EXPOSE ${PORT:8080}
-ENTRYPOINT ["java", "-jar", "app.jar"]
+EXPOSE 8080
+ENTRYPOINT ["sh", "-c", "java -jar /app.jar -Dserver.port=${PORT:-8080}"]
